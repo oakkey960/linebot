@@ -1,243 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firestore Data Display</title>
-    <!-- Firebase App (the core Firebase SDK) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <!-- Firebase Firestore SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <title>Login Page</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        #header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #ffbb6d;
-            color: white;
-            padding: 20px;
-        }
-        #data-container {
-            margin: 20px;
-        }
-        .data-item {
-            padding: 20px;
-            border-bottom: 3px solid #c4c4c4;
-            background-color: #f9f9f9;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-        }
-        .data-key, .data-value {
-            margin-right: 10px;
-        }
-        .data-key {
-            font-weight: bold;
-            width: 150px; /* Adjust key width */
-        }
-        .data-value {
-            flex: 1; /* Expand value to fill remaining space */
-        }
-        .edit-button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 14px;
-            cursor: pointer;
-            margin-left: auto; /* Align edit button to the right */
-        }
-        /* Popup form style */
-        .popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: center;
-            visibility: hidden;
+            height: 100vh;
+            background-color: #f2f2f2;
+            margin: 0;
         }
-        .popup-content {
-            background-color: white;
-            padding: 20px;
+        .login-container {
+            background-color: #fff;
+            padding: 30px;
             border-radius: 5px;
-            text-align: center;
-            width: 300px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        .popup-content input {
+        .login-container h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .login-container input {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
         }
-        .popup-content button {
-            padding: 10px 20px;
+        .login-container button {
+            width: 100%;
+            padding: 10px;
             background-color: #4CAF50;
             color: white;
             border: none;
+            border-radius: 5px;
             cursor: pointer;
+            box-sizing: border-box;
         }
-        .popup-content .close-button {
-            background-color: #f44336;
+        .login-container button:hover {
+            background-color: #45a049;
         }
-        .logout-button {
-            background-color: #f44336;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
             text-align: center;
-            text-decoration: none;
-            font-size: 14px;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div id="header">
-        <h1>แก้ไขข้อมูลใน Line Chat Bot</h1>
-        <button class="logout-button" onclick="window.location.href='register.html'">Logout</button>
-    </div>
-    <div id="data-container"></div>
 
-    <!-- Popup form for editing data -->
-    <div id="edit-popup" class="popup">
-        <div class="popup-content">
-            <h2>แก้ไขข้อมูล</h2>
-            <input type="text" id="edit-input" />
-            <button id="save-button">บันทึก</button>
-            <button class="close-button" id="close-button">ยกเลิก</button>
-        </div>
-    </div>
+<div class="login-container">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="validateLogin()">ยืนยัน</button>
+    <p class="error-message" id="error-message">Username หรือ Password ไม่ถูกต้อง</p>
+</div>
 
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAmT3ElMC3jzp2ICJ0LhclnW8NWI1youKE",
-            authDomain: "project-linebot-c094b.firebaseapp.com",
-            projectId: "project-linebot-c094b",
-            storageBucket: "project-linebot-c094b.appspot.com",
-            messagingSenderId: "252488749707",
-            appId: "1:252488749707:web:4c7a05255f5452ff3f7a8e",
-            measurementId: "G-0WKCBC42BQ"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        // Define documents to fetch and display
-        const docRefs = [
-            { name: 'ปฎิทินการศึกษา', ref: db.collection('line').doc('ปฎิทินการศึกษา') },
-            { name: 'เวลาเรียน', ref: db.collection('line').doc('เวลาเรียน') },
-            { name: 'การขอ เพิ่ม-ถอนรายวิชา', ref: db.collection('line').doc('การขอ เพิ่ม-ถอนรายวิชา') },
-            { name: 'การคืนสภาพการเป็นนักศึกษา', ref: db.collection('line').doc('การคืนสภาพการเป็นนักศึกษา') },
-            { name: 'การพ้นสภาพการศึกษา ของหลักสูตคปริญญาตรีต่อเนื่อง และเทียบโอน', ref: db.collection('line').doc('การพ้นสภาพการศึกษา ของหลักสูตคปริญญาตรีต่อเนื่อง และเทียบโอน') },
-            { name: 'การพ้นสภาพการศึกษา ของหลักสูตรปริญญาตรี 4ปี และ 5ปี', ref: db.collection('line').doc('การพ้นสภาพการศึกษา ของหลักสูตรปริญญาตรี 4ปี และ 5ปี') },
-            { name: 'การลากิจ', ref: db.collection('line').doc('การลากิจ') },
-            { name: 'การลากิจการศึกษา', ref: db.collection('line').doc('การลากิจการศึกษา') },
-            { name: 'การลาป่วย', ref: db.collection('line').doc('การลาป่วย') },
-            { name: 'นักศึกษาที่เคยศึกษาในมหาวิทยาลัย', ref: db.collection('line').doc('นักศึกษาที่เคยศึกษาในมหาวิทยาลัย') },
-            { name: 'นักศึกษาที่เคยศึกษาในมหาวิทยาลัยหรือต่างสถาบัน', ref: db.collection('line').doc('นักศึกษาที่เคยศึกษาในมหาวิทยาลัยหรือต่างสถาบัน') },
-            { name: 'สภาพนักศึกษามี 2ประเภท(จำแนกนักศึกษา)', ref: db.collection('line').doc('สภาพนักศึกษามี 2ประเภท(จำแนกนักศึกษา)') },
-            { name: 'เกียรตินิยมสำหรับผู้สำเร็จการศึกษา', ref: db.collection('line').doc('เกียรตินิยมสำหรับผู้สำเร็จการศึกษา') },
-        ];
-
-        let currentDocRef = null;
-        let currentKey = null;
-
-        // Fetch and display data for each document reference
-        docRefs.forEach(({ name, ref }) => {
-            ref.get().then((doc) => {
-                if (doc.exists) {
-                    displayData(name, doc.data(), ref);
-                } else {
-                    console.log(`No such document: ${name}`);
-                }
-            }).catch((error) => {
-                console.log(`Error getting document ${name}:`, error);
-            });
-        });
-
-        // Function to display the data with heading
-        function displayData(name, data, docRef) {
-            const dataContainer = document.getElementById('data-container');
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'data-group';
-
-            const heading = document.createElement('h2');
-            heading.textContent = name;
-            groupDiv.appendChild(heading);
-
-            for (const key in data) {
-                if (data.hasOwnProperty(key)) {
-                    const item = document.createElement('div');
-                    item.className = 'data-item';
-
-                    const keyElement = document.createElement('div');
-                    keyElement.className = 'data-key';
-                    keyElement.textContent = key;
-
-                    const valueElement = document.createElement('div');
-                    valueElement.className = 'data-value';
-                    valueElement.textContent = data[key];
-
-                    const editButton = document.createElement('button');
-                    editButton.className = 'edit-button';
-                    editButton.textContent = 'แก้ไข';
-                    editButton.addEventListener('click', () => {
-                        openEditPopup(docRef, key, data[key]);
-                    });
-
-                    item.appendChild(keyElement);
-                    item.appendChild(valueElement);
-                    item.appendChild(editButton);
-                    groupDiv.appendChild(item);
-                }
-            }
-
-            dataContainer.appendChild(groupDiv);
+<script>
+    function validateLogin() {
+        var username = document.getElementById('username').value;
+        var password = document.getElementById('password').value;
+        var errorMessage = document.getElementById('error-message');
+        
+        if (username === 'admin' && password === 'admin') {
+            //alert('Login สำเร็จ!');
+            errorMessage.style.display = 'none';
+            // เปลี่ยนหน้าไปยังหน้าอื่น เช่นหน้า dashboard
+            window.location.href = "table.html"; // เปลี่ยนตามหน้าที่ต้องการ
+        } else {
+            errorMessage.style.display = 'block';
         }
+    }
+</script>
 
-        // Function to open edit popup
-        function openEditPopup(docRef, key, value) {
-            currentDocRef = docRef;
-            currentKey = key;
-            document.getElementById('edit-input').value = value;
-            document.getElementById('edit-popup').style.visibility = 'visible';
-        }
-
-        // Function to close edit popup
-        function closeEditPopup() {
-            document.getElementById('edit-popup').style.visibility = 'hidden';
-        }
-
-        // Add event listener to close button
-        document.getElementById('close-button').addEventListener('click', closeEditPopup);
-
-        // Save changes and close the popup
-        document.getElementById('save-button').addEventListener('click', () => {
-            const newValue = document.getElementById('edit-input').value;
-            if (currentDocRef && currentKey !== null) {
-                currentDocRef.update({ [currentKey]: newValue })
-                    .then(() => {
-                        console.log('Document successfully updated!');
-                        closeEditPopup();
-                        location.reload(); // Reload to show updated data
-                    })
-                    .catch((error) => {
-                        console.error('Error updating document: ', error);
-                    });
-            }
-        });
-    </script>
 </body>
 </html>
